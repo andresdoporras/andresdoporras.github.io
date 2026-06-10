@@ -1,0 +1,365 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+<title>Smart Compound Interest Calculator</title>
+
+<!-- ✅ FIXED Chart.js -->
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+<!-- ✅ ONLY BOTTOM AD -->
+<script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-8881207017754487"
+     crossorigin="anonymous"></script>
+
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+
+:root{
+  --bg:#f4f7fb;
+  --card:#ffffff;
+  --text:#111;
+  --accent:#2d7ff9;
+  --green:#16a34a;
+  --error:#e74c3c;
+}
+
+body.dark{
+  --bg:#111;
+  --card:#1c1c1e;
+  --text:#f5f5f5;
+}
+
+body{
+  font-family:system-ui;
+  background:var(--bg);
+  color:var(--text);
+}
+
+header{
+  padding:16px;
+  display:flex;
+  justify-content:space-between;
+  align-items:center;
+  background:var(--card);
+}
+
+.container{
+  max-width:520px;
+  margin:auto;
+  padding:14px;
+}
+
+.stack{
+  display:flex;
+  flex-direction:column;
+  gap:15px;
+}
+
+@media (min-width:900px){
+  .container{max-width:1100px;}
+  .stack{
+    display:grid;
+    grid-template-columns:1fr 1fr;
+    gap:20px;
+  }
+}
+
+.card{
+  background:var(--card);
+  padding:18px;
+  border-radius:16px;
+  box-shadow:0 6px 20px rgba(0,0,0,0.05);
+}
+
+label{
+  font-size:13px;
+  font-weight:600;
+  margin-bottom:6px;
+  display:block;
+}
+
+.input-group{
+  position:relative;
+  margin-bottom:14px;
+}
+
+.input-group span{
+  position:absolute;
+  left:10px;
+  top:50%;
+  transform:translateY(-50%);
+}
+
+input{
+  width:100%;
+  padding:14px 14px 14px 30px;
+  border-radius:12px;
+  border:1px solid #ddd;
+  font-size:16px;
+}
+
+input.error{
+  border:2px solid var(--error);
+}
+
+button{
+  width:100%;
+  padding:14px;
+  border:none;
+  border-radius:14px;
+  background:linear-gradient(135deg,#2d7ff9,#1e60d6);
+  color:white;
+  font-weight:600;
+  font-size:16px;
+}
+
+.result{
+  font-size:30px;
+  font-weight:700;
+  margin:10px 0;
+}
+
+#interest{color:var(--green)}
+#contributionsBreakdown{color:var(--accent)}
+
+.small{font-size:12px;opacity:.7;margin-top:6px}
+
+.chart-container{
+  height:260px;
+  margin-top:12px;
+}
+</style>
+</head>
+
+<body>
+
+<header>
+  <div>
+    <strong id="title"></strong><br>
+    <small id="tagline"></small>
+  </div>
+  <div style="display:flex;gap:12px">
+    <span onclick="toggleLang()" style="cursor:pointer">🌐</span>
+    <span onclick="toggleDark()" style="cursor:pointer">🌙</span>
+  </div>
+</header>
+
+<div class="container">
+<div class="stack">
+
+<div class="card">
+
+<label id="lblPrincipal"></label>
+<div class="input-group">
+  <span>$</span>
+  <input id="principal" type="number" value="14000">
+</div>
+
+<label id="lblMonthly"></label>
+<div class="input-group">
+  <span>$</span>
+  <input id="monthly" type="number" value="900">
+</div>
+
+<label id="lblYears"></label>
+<input id="yearsInput" type="number" value="20">
+
+<label id="lblRate"></label>
+<input id="rate" type="number" value="20">
+
+<button onclick="calculate()" id="btnCalc"></button>
+<div id="requiredText" class="small"></div>
+
+</div>
+
+<div class="card">
+
+<div id="summary"></div>
+<div class="result" id="final"></div>
+
+<div id="principalBreakdown"></div>
+<div id="contributionsBreakdown"></div>
+<div id="interest"></div>
+
+<div class="chart-container">
+  <canvas id="chart"></canvas>
+</div>
+
+</div>
+
+</div>
+
+<div style="margin-top:20px">
+<ins class="adsbygoogle"
+     style="display:block"
+     data-ad-client="ca-pub-8881207017754487"
+     data-ad-slot="2087897854"
+     data-ad-format="auto"
+     data-full-width-responsive="true"></ins>
+<script>(adsbygoogle = window.adsbygoogle || []).push({});</script>
+</div>
+
+</div>
+
+<script>
+let chart=null;
+let lang = navigator.language.startsWith("es") ? "es" : "en";
+
+const t={
+  en:{
+    title:"Smart Compound",
+    tagline:"Plan your financial future with confidence",
+    p:"Initial Investment *",
+    m:"Monthly Contribution",
+    y:"Years *",
+    r:"Interest Rate (%) *",
+    btn:"Calculate",
+    req:"* Required fields",
+    summary:(P,FV,y)=>`Your $${P.toLocaleString()} could grow to $${Math.round(FV).toLocaleString()} in ${y} years`,
+    i:"Initial",
+    c:"Contributions",
+    in:"Interest",
+    alert:"Please fill required fields"
+  },
+  es:{
+    title:"Interés Compuesto",
+    tagline:"Planifica tu futuro financiero",
+    p:"Inversión inicial *",
+    m:"Aporte mensual",
+    y:"Años *",
+    r:"Tasa (%) *",
+    btn:"Calcular",
+    req:"* Campos obligatorios",
+    summary:(P,FV,y)=>`Tu $${P.toLocaleString()} puede crecer a $${Math.round(FV).toLocaleString()} en ${y} años`,
+    i:"Inicial",
+    c:"Aportes",
+    in:"Intereses",
+    alert:"Completa los campos obligatorios"
+  }
+};
+
+function applyLang(){
+  let L=t[lang];
+  title.innerText=L.title;
+  tagline.innerText=L.tagline;
+  lblPrincipal.innerText=L.p;
+  lblMonthly.innerText=L.m;
+  lblYears.innerText=L.y;
+  lblRate.innerText=L.r;
+  btnCalc.innerText=L.btn;
+  requiredText.innerText=L.req;
+}
+
+function toggleLang(){
+  lang = lang==="en"?"es":"en";
+  applyLang();
+  calculate();
+}
+
+function toggleDark(){
+  document.body.classList.toggle("dark");
+}
+
+function validate(){
+  let valid=true;
+  ["principal","yearsInput","rate"].forEach(id=>{
+    let el=document.getElementById(id);
+    if(!el.value){
+      el.classList.add("error");
+      valid=false;
+    }else{
+      el.classList.remove("error");
+    }
+  });
+  return valid;
+}
+
+function calculate(){
+
+  if(!validate()){
+    alert(t[lang].alert);
+    return;
+  }
+
+  let P=parseFloat(principal.value)||0;
+  let PMT=parseFloat(monthly.value)||0;
+  let years=parseFloat(yearsInput.value)||0;
+  let r=parseFloat(rate.value)/100||0;
+
+  let balance=P;
+  let growth=[];
+  let invested=[];
+
+  // ✅ FIXED CONTRIBUTIONS (MATCH PRO SITE EXACTLY)
+  let totalContribution = P;
+
+  for(let y=1;y<=years;y++){
+    balance *= (1 + r);
+    let yearly = PMT * 12;
+    balance += yearly;
+
+    totalContribution += yearly;
+
+    growth.push(balance);
+    invested.push(totalContribution);
+  }
+
+  let contributions = totalContribution;
+  let interestVal = balance - contributions;
+
+  final.innerText="$"+balance.toLocaleString(undefined,{minimumFractionDigits:2});
+  summary.innerText=t[lang].summary(P,balance,years);
+  principalBreakdown.innerText=`${t[lang].i}: $${P.toLocaleString()}`;
+  contributionsBreakdown.innerText=`${t[lang].c}: $${contributions.toLocaleString()}`;
+  interest.innerText=`${t[lang].in}: $${interestVal.toLocaleString()}`;
+
+  drawChart(growth, invested);
+}
+
+function drawChart(growth, invested){
+
+  const ctx = document.getElementById("chart").getContext("2d");
+
+  if(chart){
+    chart.destroy();
+  }
+
+  chart = new Chart(ctx,{
+    type:"line",
+    data:{
+      labels:growth.map((_,i)=>`Year ${i+1}`),
+      datasets:[
+        {
+          label:"Total Value",
+          data:growth,
+          borderColor:"#2d7ff9",
+          backgroundColor:"rgba(45,127,249,0.2)",
+          fill:true,
+          tension:0.3
+        },
+        {
+          label:"Total Contributions",
+          data:invested,
+          borderColor:"#16a34a",
+          borderDash:[5,5],
+          tension:0.3
+        }
+      ]
+    },
+    options:{
+      responsive:true,
+      maintainAspectRatio:false
+    }
+  });
+}
+
+window.onload=()=>{
+  applyLang();
+  calculate();
+};
+</script>
+
+</body>
+</html>
